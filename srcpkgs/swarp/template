@@ -11,6 +11,8 @@ distfiles="http://dl.suckless.org/tools/${pkgname}-${version}.tar.gz"
 checksum=ef5730fe8ee00879cbec1e91e22a7f0f7817a63375d790d775f5b7427886d45f
 
 do_build() {
+	msg_normal "Applying remove focus patch"
+	patch -p1 < "${FILESDIR}/remove-focus.patch"
 	sed -i 's/CPPFLAGS =/CPPFLAGS +=/g' config.mk
 	sed -i 's/CFLAGS =/CFLAGS +=/g' config.mk
 	sed -i 's/LDFLAGS =/LDFLAGS +=/g' config.mk
