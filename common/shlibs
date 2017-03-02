@@ -858,9 +858,9 @@ libcolorhug.so.2 libcolord-1.1.7_1
 libnm-gtk.so.0 libnm-gtk-0.9.1.95_1
 libcaribou.so.0 caribou-0.4.0_1
 libgupnp-av-1.0.so.2 gupnp-av-0.10.0_1
-libgrilo-0.2.so.1 grilo-0.2.14_1
-libgrlnet-0.2.so.0 grilo-0.2.0_1
-libgrlpls-0.2.so.0 grilo-0.2.9_1
+libgrilo-0.3.so.0 grilo-0.3.2_1
+libgrlnet-0.3.so.0 grilo-0.3.2_1
+libgrlpls-0.3.so.0 grilo-0.3.2_1
 libquvi.so.7 libquvi-0.4.0_1
 libepc-1.0.so.3 libepc-0.4.1_1
 libepc-ui-1.0.so.3 libepc-0.4.1_1
@@ -2782,3 +2782,9 @@ libcompizconfig.so.0 libcompizconfig-0.8.12.1_1
 libemeraldengine.so.0 emerald-0.8.12.4_1
 
 libhangul.so.1 libhangul-0.1.0_1
+libmutter-clutter-1.0.so mutter-3.22.0_1
+libmutter-cogl-pango.so mutter-3.22.0_1
+libmutter-cogl-path.so mutter-3.22.0_1
+libmutter-cogl.so mutter-3.22.0_1
+libgeoclue-2.so.0 geoclue2-2.4.4_1
+libgepub.so.0 libgepub-0.4_1
