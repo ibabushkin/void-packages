@@ -1,0 +1,12 @@
+diff --git a/swarp.c b/swarp.c
+index ee7ed8f..0c17af8 100644
+--- a/swarp.c
++++ b/swarp.c
+@@ -29,7 +29,6 @@ Usage:
+ 		exit(EXIT_FAILURE);
+ 	}
+ 	XWarpPointer(dpy, None, RootWindow(dpy, DefaultScreen(dpy)), 0, 0, 0, 0, x, y);
+-	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
+ 	XCloseDisplay(dpy);
+ 	return 0;
+ }
