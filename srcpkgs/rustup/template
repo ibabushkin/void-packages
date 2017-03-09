@@ -1,0 +1,47 @@
+# Template file for 'rustup'
+pkgname=rustup
+version=1.2.0
+revision=1
+only_for_archs="i686 x86_64"
+conflicts="rust cargo"
+wrksrc="${pkgname}.rs-${version}"
+hostmakedepends="cargo rust pkg-config perl"
+makedepends="libressl-devel libtls15 zlib-devel"
+short_desc="An installer for the systems programming language Rust"
+maintainer="Inokentiy Babushkin <twk@twki.de>"
+homepage="https://rustup.rs/"
+license="MIT, Apache-2.0"
+distfiles="https://github.com/rust-lang-nursery/${pkgname}.rs/archive/${version}.tar.gz"
+checksum="b79434f7c893468d122755ec7f8c4a41643fa4fdd951d2d5453ef93f55921a31"
+nocross=yes
+
+do_build() {
+	# note https://github.com/rust-lang-nursery/rustup.rs/issues/978 -
+	# some problems in the past were had.
+
+	# build without self-upgrading
+	cargo build --release --features no-self-update --bin rustup-init
+
+	# fake a home directory and init rustup there
+	mkdir -p "${wrksrc}/tmp/.cargo"
+	env -u CARGO_HOME "HOME=${wrksrc}/tmp" target/release/rustup-init -y
+}
+
+do_install() {
+	# rustup, cargo, rustc, rustdoc, rust-{g,ll}db
+	for file in "${wrksrc}/tmp/.cargo/bin"/*; do
+		vbin $file
+	done
+
+	# generate and install completions
+	${wrksrc}/tmp/.cargo/bin/rustup completions bash > "${wrksrc}/tmp/rustup"
+	${wrksrc}/tmp/.cargo/bin/rustup completions fish > "${wrksrc}/tmp/rustup.fish"
+	${wrksrc}/tmp/.cargo/bin/rustup completions zsh > "${wrksrc}/tmp/_rustup"
+
+	vinstall "${wrksrc}/tmp/rustup" 0644 usr/share/bash-completion/completions
+	vinstall "${wrksrc}/tmp/rustup.fish" 0644 usr/share/fish/completions
+	vinstall "${wrksrc}/tmp/_rustup" 0644 usr/share/zsh/site-functions
+
+	vlicense LICENSE-MIT
+	vlicense LICENSE-APACHE
+}
