@@ -11,8 +11,8 @@ _archflags="-march=mips32r2 -mhard-float"
 _sysroot="/usr/${_triplet}"
 
 pkgname=cross-${_triplet}
-version=0.22
-revision=5
+version=0.23
+revision=2
 short_desc="Cross toolchain for MIPS32r2 LE hardfloat target (musl)"
 maintainer="Juan RP <xtraeme@voidlinux.eu>"
 homepage="http://www.voidlinux.eu"
@@ -35,8 +35,8 @@ nodebug=yes
 create_wrksrc=yes
 
 hostmakedepends="perl flex"
-makedepends="zlib-devel gmp-devel mpfr-devel libmpc-devel"
-nostrip_files="libgcc.a libgcov.a libgcc_eh.a"
+makedepends="zlib-devel gmp-devel mpfr-devel libmpc-devel isl15-devel"
+nostrip_files="libcaf_single.a libgcc.a libgcov.a libgcc_eh.a"
 depends="${pkgname}-libc-${version}_${revision}"
 
 _apply_patch() {
@@ -126,6 +126,10 @@ _linux_headers() {
 
 	cd linux-${_linux_version}
 
+	for f in ${XBPS_SRCPKGDIR}/kernel-libc-headers/patches/*.patch; do
+		_apply_patch -p0 $f
+	done
+
 	make ARCH=mips headers_check
 	make ARCH=mips INSTALL_HDR_PATH=${_sysroot}/usr headers_install
 
@@ -162,7 +166,7 @@ _gcc_build() {
 	_args+=" --libexecdir=/usr/lib"
 	_args+=" --target=${_triplet}"
 	_args+=" --with-sysroot=${_sysroot}"
-	_args+=" --enable-languages=c,c++,lto"
+	_args+=" --enable-languages=c,c++,fortran,lto"
 	_args+=" --enable-lto"
 	_args+=" --disable-libsanitizer"
 	_args+=" --disable-multilib"

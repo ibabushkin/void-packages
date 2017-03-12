@@ -1053,7 +1053,7 @@ libpwquality.so.1 libpwquality-1.1.1_1
 libisl.so.10 isl-0.10_1
 libisl.so.15 isl15-0.16.1_1
 libcloog-isl.so.4 cloog-0.18.1_1
-librtmp.so.0 librtmp-2.4_1
+librtmp.so.1 librtmp-2.4.20161210_1
 libORBit-2.so.0 libORBit2-2.14.19_1
 libORBit-imodule-2.so.0 libORBit2-2.14.19_1
 libORBitCosNaming-2.so.0 libORBit2-2.14.19_1
@@ -1184,7 +1184,7 @@ libgranite.so.3 granite-0.3.1_1
 libprotobuf-vala.so.0 libprotobuf-vala-0.1.0_1
 librlog.so.5 librlog-1.4_1
 libtinyxml.so.0 tinyxml-2.6.2_1
-libbluray.so.1 libbluray-0.2.3_1
+libbluray.so.2 libbluray-1.0.0_1
 libnfs.so.8 libnfs-1.9.7_1
 libzip.so.5 libzip-1.2_1
 libapp.so.0 libapp-20110513_1
@@ -1901,6 +1901,7 @@ libQt5WebSockets.so.5 qt5-websockets-5.6.0_1
 libQt5X11Extras.so.5 qt5-x11extras-5.6.0_1
 libQt5XmlPatterns.so.5 qt5-xmlpatterns-5.6.0_1
 libQt5Core.so.5 qt5-5.6.0_1
+libQt5EglFSDeviceIntegration.so.5 qt5-5.8.0_1
 libQt5Network.so.5 qt5-5.6.0_1
 libQt5Sql.so.5 qt5-5.6.0_1
 libQt5Xml.so.5 qt5-5.6.0_1
@@ -1916,6 +1917,7 @@ libQt5EglDeviceIntegration.so.5 qt5-5.6.0_1
 libQt5EglFsKmsSupport.so.5 qt5-5.7.1_1
 libQt5WebKit.so.5 qt5-webkit-5.6.0_1
 libQt5WebKitWidgets.so.5 qt5-webkit-5.6.0_1
+libQt5TextToSpeech.so.5 qt5-speech-5.8.0_1
 libx265.so.102 x265-2.2_1
 libQt5Xdg.so.2 libqtxdg-2.0.0_1
 libQt5XdgIconLoader.so.2 libqtxdg-2.0.0_1
@@ -1933,7 +1935,7 @@ libglfw.so.3 glfw-3.0.4_1
 libusbmuxd.so.4 libusbmuxd-1.0.10_1
 libimobiledevice.so.6 libimobiledevice-1.2.0_1
 libstfl.so.0 stfl-0.23_1
-libenventor.so.0 enventor-0.4.1_1
+libenventor.so.1 enventor-1.0.0_1
 libCDApplet.so cairo-dock-plugins-3.4.0_1
 libhydrogen-core-0.9.6.1.so hydrogen-0.9.6.1_1
 libldns.so.2 libldns-1.7.0_1
@@ -2163,7 +2165,7 @@ libgtkimageview.so.0 gtkimageview-1.6.4_1
 libgoocanvas.so.3 goocanvas1-1.0.0_1
 libplatform.so.2.0 platform-2.0.1_1
 libp8-platform.so.2.0 p8-platform-2.0.1_1
-libfacter.so.3.6.0 facter-3.6.0_1
+libfacter.so.3.6.2 facter-3.6.2_1
 libOIS-1.3.0.so ois-1.3_1
 libSILLY.so.1 silly-0.1.0_1
 libkeybinder-3.0.so.0 libkeybinder3-0.3.0_1
@@ -2469,7 +2471,7 @@ libkdevplatformdocumentation.so.8 kdevplatform-1.7.3_1
 libkdevplatformoutputview.so.8 kdevplatform-1.7.3_1
 libkdevplatformvcs.so.8 kdevplatform-1.7.3_1
 libkdevplatforminterfaces.so.8 kdevplatform-1.7.3_1
-libts-1.5.so.0 tslib-1.5_1
+libts.so.0 tslib-1.6_1
 libobs.so.0 obs-0.14.1_2
 libobsglad.so.0 obs-0.14.1_2
 libobs-opengl.so.0 obs-0.14.1_2
@@ -2717,7 +2719,7 @@ libpayeeidentifier_nationalAccount.so.4 kmymoney-4.8.0_1
 libpayeeidentifier_iban_bic.so.4 kmymoney-4.8.0_1
 libkmm_payeeidentifier.so kmymoney-4.8.0_1
 libbotan-2.so.0 botan-2.0.0_1
-libswipl.so.7.2 swi-prolog-7.2.3_5
+libswipl.so.7.4 swi-prolog-7.4.1_1
 libpcre2-16.so.0 libpcre2-10.22_1
 libpcre2-32.so.0 libpcre2-10.22_1
 libpcre2-8.so.0 libpcre2-10.22_1
@@ -2771,7 +2773,7 @@ libopencsg.so.1 opencsg-1.4.2_1
 libCGAL.so.12 cgal-4.9_1
 libCGAL_Core.so.12 cgal-4.9_1
 libCGAL_ImageIO.so.12 cgal-4.9_1
-libqscintilla2-qt5.so.12 qscintilla-qt5-2.9.4_1
+libqscintilla2_qt5.so.13 qscintilla-qt5-2.10_1
 liblxpanel.so.0 lxpanel-0.9.3_1
 libuim.so.8 uim-1.8.6_1
 libuim-scm.so.0 uim-1.8.6_1
@@ -2780,7 +2782,6 @@ libgcroots.so.0 uim-1.8.6_1
 libdecoration.so.0 compiz-core-0.8.12.3_1
 libcompizconfig.so.0 libcompizconfig-0.8.12.1_1
 libemeraldengine.so.0 emerald-0.8.12.4_1
-
 libhangul.so.1 libhangul-0.1.0_1
 libmutter-clutter-1.0.so mutter-3.22.0_1
 libmutter-cogl-pango.so mutter-3.22.0_1
@@ -2788,3 +2789,13 @@ libmutter-cogl-path.so mutter-3.22.0_1
 libmutter-cogl.so mutter-3.22.0_1
 libgeoclue-2.so.0 geoclue2-2.4.4_1
 libgepub.so.0 libgepub-0.4_1
+libslopy.so.0.1.0 slop-5.3.37_1
+libbcunit.so.1 bcunit-3.0_1
+libomxil-bellagio.so.0 libomxil-bellagio-0.9.3_1 
+libomxdynamicloader.so.0 libomxil-bellagio-0.9.3_1 
+libomxaudio_effects.so.0 libomxil-bellagio-0.9.3_1 
+libomxclocksrc.so.0 libomxil-bellagio-0.9.3_1 
+libomxvideosched.so.0 libomxil-bellagio-0.9.3_1 
+libnss_libvirt_guest.so.2 libvirt-3.1.0_1
+libvirt-admin.so.0 libvirt-3.1.0_1
+libnss_libvirt.so.2 libvirt-3.1.0_1
