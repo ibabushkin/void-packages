@@ -10,20 +10,12 @@ homepage="http://tools.suckless.org/dmenu/"
 distfiles="http://dl.suckless.org/tools/${pkgname}-${version}.tar.gz"
 checksum=4a7a24008a621c3cd656155ad91ab8136db8f0d3b9ec56dafeec518cabda96b3
 
-build_options="fuzzymatch"
-desc_option_fuzzymatch="Enable Fuzzymatch support"
-
 post_extract() {
-	if [ "$build_option_fuzzymatch" ]; then
-		msg_normal "Applying fuzzymatch patches"
-		patch -p1 < "${FILESDIR}/fuzzymatch.patch"
-	fi
 	sed -i -e '/CFLAGS/{s/-Os//;s/=/+=/}' \
 		-e '/LDFLAGS/{s/-s//;s/=/+=/}' config.mk
 }
 
 do_build() {
-	cp ${FILESDIR}/config.h config.h
 	sed -i -e "s|^FREETYPEINC|#FREETYPEINC|g" \
 		-e "s|^X11INC|#X11INC|g" \
 		-e "s|^X11LIB|#X11LIB|g" config.mk

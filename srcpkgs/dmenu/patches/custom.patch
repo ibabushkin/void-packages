@@ -1,0 +1,1240 @@
+diff --git arg.h arg.h
+index ff1fd13..e94e02b 100644
+--- arg.h
++++ arg.h
+@@ -10,8 +10,8 @@ extern char *argv0;
+ 
+ /* use main(int argc, char *argv[]) */
+ #define ARGBEGIN	for (argv0 = *argv, argv++, argc--;\
+-					argv[0] && argv[0][1]\
+-					&& argv[0][0] == '-';\
++					argv[0] && argv[0][0] == '-'\
++					&& argv[0][1];\
+ 					argc--, argv++) {\
+ 				char argc_;\
+ 				char **argv_;\
+diff --git config.def.h config.def.h
+index a9122f7..47a7d37 100644
+--- config.def.h
++++ config.def.h
+@@ -2,16 +2,23 @@
+ /* Default settings; can be overriden by command line. */
+ 
+ static int topbar = 1;                      /* -b  option; if 0, dmenu appears at bottom     */
++static int instant = 0;                     /* -n  option; if 1, dmenu ends immediately on a distinct match */
+ /* -fn option overrides fonts[0]; default X11 font or font set */
+ static const char *fonts[] = {
+-	"monospace:size=10"
++	"misc termsyn:size=8"
++};
++static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
++static const char *colors[SchemeLast][2] = {
++	/*     fg         bg       */
++	[SchemeNorm] = { "#657b83", "#1c1c1c" },
++	[SchemeSel] = { "#cccccc", "#005577" },
++	[SchemeOut] = { "#000000", "#00ffff" },
+ };
+-static const char *prompt      = NULL;      /* -p  option; prompt to the elft of input field */
+-static const char *normbgcolor = "#222222"; /* -nb option; normal background                 */
+-static const char *normfgcolor = "#bbbbbb"; /* -nf option; normal foreground                 */
+-static const char *selbgcolor  = "#005577"; /* -sb option; selected background               */
+-static const char *selfgcolor  = "#eeeeee"; /* -sf option; selected foreground               */
+-static const char *outbgcolor  = "#00ffff";
+-static const char *outfgcolor  = "#000000";
+ /* -l option; if nonzero, dmenu uses vertical list with given number of lines */
+ static unsigned int lines      = 0;
++
++/*
++ * Characters not considered part of a word while deleting words
++ * for example: " /?\"&[]"
++ */
++static const char worddelimiters[] = " ";
+diff --git dmenu.1 dmenu.1
+index d3ab805..c2caf14 100644
+--- dmenu.1
++++ dmenu.1
+@@ -3,13 +3,13 @@
+ dmenu \- dynamic menu
+ .SH SYNOPSIS
+ .B dmenu
+-.RB [ \-b ]
+-.RB [ \-f ]
+-.RB [ \-i ]
++.RB [ \-bfiv ]
+ .RB [ \-l
++.IR lines ]
+ .RB [ \-m
+ .IR monitor ]
+ .IR lines ]
++.RB [ \-n ]
+ .RB [ \-p
+ .IR prompt ]
+ .RB [ \-fn
+@@ -22,7 +22,8 @@ dmenu \- dynamic menu
+ .IR color ]
+ .RB [ \-sf
+ .IR color ]
+-.RB [ \-v ]
++.RB [ \-w
++.IR windowid ]
+ .P
+ .BR dmenu_run " ..."
+ .SH DESCRIPTION
+@@ -51,10 +52,31 @@ dmenu matches menu items case insensitively.
+ .BI \-l " lines"
+ dmenu lists items vertically, with the given number of lines.
+ .TP
++.BI \-x " xoffset"
++dmenu is placed at this offset measured from the left side of the monitor.
++Can be negative.
++If option
++.B \-m
++is present, the measurement will use the given monitor.
++.TP
++.BI \-y " yoffset"
++dmenu is placed at this offset measured from the top of the monitor.  If the
++.B \-b
++option is used, the offset is measured from the bottom.  Can be negative.
++If option
++.B \-m
++is present, the measurement will use the given monitor.
++.TP
++.BI \-w " width"
++sets the width of the dmenu window.
++.TP
+ .BI \-m " monitor"
+ dmenu is displayed on the monitor number supplied. Monitor numbers are starting
+ from 0.
+ .TP
++.BI \-n
++instant match, end dmenu if there is only one match left.
++.TP
+ .BI \-p " prompt"
+ defines the prompt to be displayed to the left of the input field.
+ .TP
+@@ -78,12 +100,15 @@ defines the selected foreground color.
+ .TP
+ .B \-v
+ prints version information to stdout, then exits.
++.TP
++.BI \-w " windowid"
++embed into windowid.
+ .SH USAGE
+ dmenu is completely controlled by the keyboard.  Items are selected using the
+ arrow keys, page up, page down, home, and end.
+ .TP
+ .B Tab
+-Copy the selected item to the input field.
++Copy the first item to the input field, which differs from the input.
+ .TP
+ .B Return
+ Confirm selection.  Prints the selected item to stdout and exits, returning
+diff --git dmenu.c dmenu.c
+index a07f8e3..7d4baa9 100644
+--- dmenu.c
++++ dmenu.c
+@@ -22,8 +22,7 @@
+ #define INTERSECT(x,y,w,h,r)  (MAX(0, MIN((x)+(w),(r).x_org+(r).width)  - MAX((x),(r).x_org)) \
+                              * MAX(0, MIN((y)+(h),(r).y_org+(r).height) - MAX((y),(r).y_org)))
+ #define LENGTH(X)             (sizeof X / sizeof X[0])
+-#define TEXTNW(X,N)           (drw_font_getexts_width(drw->fonts[0], (X), (N)))
+-#define TEXTW(X)              (drw_text(drw, 0, 0, 0, 0, (X), 0) + drw->fonts[0]->h)
++#define TEXTW(X)              (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
+ /* enums */
+ enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
+@@ -35,9 +34,13 @@ struct item {
+ };
+ 
+ static char text[BUFSIZ] = "";
++static char *embed;
+ static int bh, mw, mh;
+-static int sw, sh; /* X display screen geometry width, height */
+-static int inputw, promptw;
++static int inputw = 0, promptw;
++static int lrpad; /* sum of left and right padding */
++static int dmx = 0; /* put dmenu at this x offset */
++static int dmy = 0; /* put dmenu at this y offset (measured from the bottom if topbar is 0) */
++static unsigned int dmw = 0; /* make dmenu this wide */
+ static size_t cursor;
+ static struct item *items = NULL;
+ static struct item *matches, *matchend;
+@@ -46,11 +49,11 @@ static int mon = -1, screen;
+ 
+ static Atom clip, utf8;
+ static Display *dpy;
+-static Window root, win;
++static Window root, parentwin, win;
+ static XIC xic;
+ 
+-static ClrScheme scheme[SchemeLast];
+ static Drw *drw;
++static Clr *scheme[SchemeLast];
+ 
+ #include "config.h"
+ 
+@@ -94,10 +97,8 @@ cleanup(void)
+ 	size_t i;
+ 
+ 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
+-	for (i = 0; i < SchemeLast; i++) {
+-		drw_clr_free(scheme[i].bg);
+-		drw_clr_free(scheme[i].fg);
+-	}
++	for (i = 0; i < SchemeLast; i++)
++		free(scheme[i]);
+ 	drw_free(drw);
+ 	XSync(dpy, False);
+ 	XCloseDisplay(dpy);
+@@ -114,89 +115,101 @@ cistrstr(const char *s, const char *sub)
+ 	return NULL;
+ }
+ 
++static int
++drawitem(struct item *item, int x, int y, int w)
++{
++	if (item == sel)
++		drw_setscheme(drw, scheme[SchemeSel]);
++	else if (item->out)
++		drw_setscheme(drw, scheme[SchemeOut]);
++	else
++		drw_setscheme(drw, scheme[SchemeNorm]);
++
++	return drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
++}
++
+ static void
+ drawmenu(void)
+ {
+-	int curpos;
++	unsigned int curpos;
+ 	struct item *item;
+-	int x = 0, y = 0, h = bh, w;
++	int x = 0, y = 0, w;
+ 
+-	drw_setscheme(drw, &scheme[SchemeNorm]);
+-	drw_rect(drw, 0, 0, mw, mh, 1, 1, 1);
++	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_rect(drw, 0, 0, mw, mh, 1, 1);
+ 
+ 	if (prompt && *prompt) {
+-		drw_setscheme(drw, &scheme[SchemeSel]);
+-		drw_text(drw, x, 0, promptw, bh, prompt, 0);
+-		x += promptw;
++		drw_setscheme(drw, scheme[SchemeSel]);
++		x = drw_text(drw, x, 0, promptw, bh, lrpad / 2, prompt, 0);
+ 	}
+ 	/* draw input field */
+ 	w = (lines > 0 || !matches) ? mw - x : inputw;
+-	drw_setscheme(drw, &scheme[SchemeNorm]);
+-	drw_text(drw, x, 0, w, bh, text, 0);
++	drw_setscheme(drw, scheme[SchemeNorm]);
++	drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
+ 
+-	if ((curpos = TEXTNW(text, cursor) + bh / 2 - 2) < w) {
+-		drw_setscheme(drw, &scheme[SchemeNorm]);
+-		drw_rect(drw, x + curpos + 2, 2, 1, bh - 4, 1, 1, 0);
++	drw_font_getexts(drw->fonts, text, cursor, &curpos, NULL);
++	if ((curpos += lrpad / 2 - 1) < w) {
++		drw_setscheme(drw, scheme[SchemeNorm]);
++		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
+ 	}
+ 
+ 	if (lines > 0) {
+ 		/* draw vertical list */
+-		w = mw - x;
+-		for (item = curr; item != next; item = item->right) {
+-			y += h;
+-			if (item == sel)
+-				drw_setscheme(drw, &scheme[SchemeSel]);
+-			else if (item->out)
+-				drw_setscheme(drw, &scheme[SchemeOut]);
+-			else
+-				drw_setscheme(drw, &scheme[SchemeNorm]);
+-
+-			drw_text(drw, x, y, w, bh, item->text, 0);
+-		}
++		for (item = curr; item != next; item = item->right)
++			drawitem(item, x, y += bh, mw - x);
+ 	} else if (matches) {
+ 		/* draw horizontal list */
+ 		x += inputw;
+ 		w = TEXTW("<");
+ 		if (curr->left) {
+-			drw_setscheme(drw, &scheme[SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, "<", 0);
++			drw_setscheme(drw, scheme[SchemeNorm]);
++			drw_text(drw, x, 0, w, bh, lrpad / 2, "<", 0);
+ 		}
+-		for (item = curr; item != next; item = item->right) {
+-			x += w;
+-			w = MIN(TEXTW(item->text), mw - x - TEXTW(">"));
+-
+-			if (item == sel)
+-				drw_setscheme(drw, &scheme[SchemeSel]);
+-			else if (item->out)
+-				drw_setscheme(drw, &scheme[SchemeOut]);
+-			else
+-				drw_setscheme(drw, &scheme[SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, item->text, 0);
+-		}
+-		w = TEXTW(">");
+-		x = mw - w;
++		x += w;
++		for (item = curr; item != next; item = item->right)
++			x = drawitem(item, x, 0, MIN(TEXTW(item->text), mw - x - TEXTW(">")));
+ 		if (next) {
+-			drw_setscheme(drw, &scheme[SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, ">", 0);
++			w = TEXTW(">");
++			drw_setscheme(drw, scheme[SchemeNorm]);
++			drw_text(drw, mw - w, 0, w, bh, lrpad / 2, ">", 0);
+ 		}
+ 	}
+ 	drw_map(drw, win, 0, 0, mw, mh);
+ }
+ 
+ static void
++grabfocus(void)
++{
++	struct timespec ts = { .tv_sec = 0, .tv_nsec = 10000000  };
++	Window focuswin;
++	int i, revertwin;
++
++	for (i = 0; i < 100; ++i) {
++		XGetInputFocus(dpy, &focuswin, &revertwin);
++		if (focuswin == win)
++			return;
++		XSetInputFocus(dpy, win, RevertToParent, CurrentTime);
++		nanosleep(&ts, NULL);
++	}
++	die("cannot grab focus");
++}
++
++static void
+ grabkeyboard(void)
+ {
+ 	struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000  };
+ 	int i;
+ 
++	if (embed)
++		return;
+ 	/* try to grab keyboard, we may have to wait for another process to ungrab */
+ 	for (i = 0; i < 1000; i++) {
+-		if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True,
+-		                 GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
++		if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync,
++		                  GrabModeAsync, CurrentTime) == GrabSuccess)
+ 			return;
+ 		nanosleep(&ts, NULL);
+ 	}
+-	die("cannot grab keyboard\n");
++	die("cannot grab keyboard");
+ }
+ 
+ static void
+@@ -214,11 +227,11 @@ match(void)
+ 	/* separate input text into tokens to be matched individually */
+ 	for (s = strtok(buf, " "); s; tokv[tokc - 1] = s, s = strtok(NULL, " "))
+ 		if (++tokc > tokn && !(tokv = realloc(tokv, ++tokn * sizeof *tokv)))
+-			die("cannot realloc %u bytes\n", tokn * sizeof *tokv);
++			die("cannot realloc %u bytes:", tokn * sizeof *tokv);
+ 	len = tokc ? strlen(tokv[0]) : 0;
+ 
+ 	matches = lprefix = lsubstr = matchend = prefixend = substrend = NULL;
+-	textsize = strlen(text);
++	textsize = strlen(text) + 1;
+ 	for (item = items; item && item->text; item++) {
+ 		for (i = 0; i < tokc; i++)
+ 			if (!fstrstr(item->text, tokv[i]))
+@@ -250,6 +263,11 @@ match(void)
+ 		matchend = substrend;
+ 	}
+ 	curr = sel = matches;
++	if (instant && matches && matches == matchend) {
++		puts(matches->text);
++		cleanup();
++		exit(0);
++	}
+ 	calcoffsets();
+ }
+ 
+@@ -314,9 +332,9 @@ keypress(XKeyEvent *ev)
+ 			insert(NULL, 0 - cursor);
+ 			break;
+ 		case XK_w: /* delete word */
+-			while (cursor > 0 && text[nextrune(-1)] == ' ')
++			while (cursor > 0 && strchr(worddelimiters, text[nextrune(-1)]))
+ 				insert(NULL, nextrune(-1) - cursor);
+-			while (cursor > 0 && text[nextrune(-1)] != ' ')
++			while (cursor > 0 && !strchr(worddelimiters, text[nextrune(-1)]))
+ 				insert(NULL, nextrune(-1) - cursor);
+ 			break;
+ 		case XK_y: /* paste selection */
+@@ -439,6 +457,16 @@ keypress(XKeyEvent *ev)
+ 	case XK_Tab:
+ 		if (!sel)
+ 			return;
++
++		/* get the first entry differing from the current text */
++		while (!strncmp(text, sel->text, sizeof text - 1) &&
++				sel->right && (sel = sel->right) == next) {
++			if (!sel)
++				return;
++			curr = next;
++			calcoffsets();
++		}
++
+ 		strncpy(text, sel->text, sizeof text - 1);
+ 		text[sizeof text - 1] = '\0';
+ 		cursor = strlen(text);
+@@ -467,8 +495,9 @@ paste(void)
+ static void
+ readstdin(void)
+ {
+-	char buf[sizeof text], *p, *maxstr = NULL;
+-	size_t i, max = 0, size = 0;
++	char buf[sizeof text], *p;
++	size_t i, imax = 0, size = 0;
++	unsigned int tmpmax = 0;
+ 
+ 	/* read each line from stdin and add it to the item list */
+ 	for (i = 0; fgets(buf, sizeof buf, stdin); i++) {
+@@ -480,12 +509,15 @@ readstdin(void)
+ 		if (!(items[i].text = strdup(buf)))
+ 			die("cannot strdup %u bytes:", strlen(buf) + 1);
+ 		items[i].out = 0;
+-		if (strlen(items[i].text) > max)
+-			max = strlen(maxstr = items[i].text);
++		drw_font_getexts(drw->fonts, buf, strlen(buf), &tmpmax, NULL);
++		if (tmpmax > inputw) {
++			inputw = tmpmax;
++			imax = i;
++		}
+ 	}
+ 	if (items)
+ 		items[i].text = NULL;
+-	inputw = maxstr ? TEXTW(maxstr) : 0;
++	inputw = items ? TEXTW(items[imax].text) : 0;
+ 	lines = MIN(lines, i);
+ }
+ 
+@@ -502,6 +534,11 @@ run(void)
+ 			if (ev.xexpose.count == 0)
+ 				drw_map(drw, win, 0, 0, mw, mh);
+ 			break;
++		case FocusIn:
++			/* regrab focus from parent window */
++			if (ev.xfocus.window != win)
++				grabfocus();
++			break;
+ 		case KeyPress:
+ 			keypress(&ev.xkey);
+ 			break;
+@@ -520,36 +557,35 @@ run(void)
+ static void
+ setup(void)
+ {
+-	int x, y;
++	int x, y, i = 0;
++	unsigned int du;
+ 	XSetWindowAttributes swa;
++	XWindowChanges wch;
+ 	XIM xim;
++	Window w, dw, *dws;
++	XWindowAttributes wa;
+ #ifdef XINERAMA
+ 	XineramaScreenInfo *info;
+-	Window w, pw, dw, *dws;
+-	XWindowAttributes wa;
+-	int a, j, di, n, i = 0, area = 0;
+-	unsigned int du;
++	Window pw;
++	int a, j, di, n, area = 0;
+ #endif
+ 
+ 	/* init appearance */
+-	scheme[SchemeNorm].bg = drw_clr_create(drw, normbgcolor);
+-	scheme[SchemeNorm].fg = drw_clr_create(drw, normfgcolor);
+-	scheme[SchemeSel].bg = drw_clr_create(drw, selbgcolor);
+-	scheme[SchemeSel].fg = drw_clr_create(drw, selfgcolor);
+-	scheme[SchemeOut].bg = drw_clr_create(drw, outbgcolor);
+-	scheme[SchemeOut].fg = drw_clr_create(drw, outfgcolor);
++	scheme[SchemeNorm] = drw_scm_create(drw, colors[SchemeNorm], 2);
++	scheme[SchemeSel] = drw_scm_create(drw, colors[SchemeSel], 2);
++	scheme[SchemeOut] = drw_scm_create(drw, colors[SchemeOut], 2);
+ 
+ 	clip = XInternAtom(dpy, "CLIPBOARD",   False);
+ 	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
+ 
+ 	/* calculate menu geometry */
+-	bh = drw->fonts[0]->h + 2;
++	bh = drw->fonts->h + 8;
+ 	lines = MAX(lines, 0);
+ 	mh = (lines + 1) * bh;
+ #ifdef XINERAMA
+-	if ((info = XineramaQueryScreens(dpy, &n))) {
++	if (parentwin == root && (info = XineramaQueryScreens(dpy, &n))) {
+ 		XGetInputFocus(dpy, &w, &di);
+-		if (mon != -1 && mon < n)
++		if (mon >= 0 && mon < n)
+ 			i = mon;
+ 		else if (w != root && w != PointerRoot && w != None) {
+ 			/* find top-level window containing current input focus */
+@@ -566,34 +602,40 @@ setup(void)
+ 					}
+ 		}
+ 		/* no focused window is on screen, so use pointer location instead */
+-		if (mon == -1 && !area && XQueryPointer(dpy, root, &dw, &dw, &x, &y, &di, &di, &du))
++		if (mon < 0 && !area && XQueryPointer(dpy, root, &dw, &dw, &x, &y, &di, &di, &du))
+ 			for (i = 0; i < n; i++)
+ 				if (INTERSECT(x, y, 1, 1, info[i]))
+ 					break;
+ 
+-		x = info[i].x_org;
+-		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
+-		mw = info[i].width;
++		x = info[i].x_org + dmx;
++		y = info[i].y_org + (topbar ? dmy : info[i].height - (mh + 2) - dmy);
++		mw = (dmw>0 ? dmw : info[i].width - 2);
+ 		XFree(info);
+ 	} else
+ #endif
+ 	{
+-		x = 0;
+-		y = topbar ? 0 : sh - mh;
+-		mw = sw;
++		if (!XGetWindowAttributes(dpy, parentwin, &wa))
++			die("could not get embedding window attributes: 0x%lx",
++			    parentwin);
++		x = dmx;
++		y = topbar ? dmy : wa.height - (mh + 2) - dmy;
++		mw = dmw > 0 ? dmw : wa.width - 2;
+ 	}
+-	promptw = (prompt && *prompt) ? TEXTW(prompt) : 0;
++	promptw = (prompt && *prompt) ? TEXTW(prompt) - lrpad / 4 : 0;
+ 	inputw = MIN(inputw, mw/3);
+ 	match();
+ 
+ 	/* create menu window */
+ 	swa.override_redirect = True;
+-	swa.background_pixel = scheme[SchemeNorm].bg->pix;
++	swa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
++	swa.border_pixel = scheme[SchemeSel][ColBg].pixel;
+ 	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
+-	win = XCreateWindow(dpy, root, x, y, mw, mh, 0,
+-	                    DefaultDepth(dpy, screen), CopyFromParent,
+-	                    DefaultVisual(dpy, screen),
+-	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
++	win = XCreateWindow(dpy, parentwin, x, y, mw, mh, 0,
++	                    CopyFromParent, CopyFromParent, CopyFromParent,
++	                    CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask,
++                        &swa);
++	wch.border_width = 1;
++	XConfigureWindow(dpy, win, CWBorderWidth, &wch);
+ 
+ 	/* open input methods */
+ 	xim = XOpenIM(dpy, NULL, NULL, NULL);
+@@ -601,6 +643,15 @@ setup(void)
+ 	                XNClientWindow, win, XNFocusWindow, win, NULL);
+ 
+ 	XMapRaised(dpy, win);
++	if (embed) {
++		XSelectInput(dpy, parentwin, FocusChangeMask);
++		if (XQueryTree(dpy, parentwin, &dw, &w, &dws, &du) && dws) {
++			for (i = 0; i < du && dws[i] != win; ++i)
++				XSelectInput(dpy, dws[i], FocusChangeMask);
++			XFree(dws);
++		}
++		grabfocus();
++	}
+ 	drw_resize(drw, mw, mh);
+ 	drawmenu();
+ }
+@@ -608,14 +659,16 @@ setup(void)
+ static void
+ usage(void)
+ {
+-	fputs("usage: dmenu [-b] [-f] [-i] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+-	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-v]\n", stderr);
++	fputs("usage: dmenu [-bfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
++	      "             [-x xoffset] [-y yoffset] [-W width] [-w windowid]\n"
++	      "             [-nb color] [-nf color] [-sb color] [-sf color]\n", stderr);
+ 	exit(1);
+ }
+ 
+ int
+ main(int argc, char *argv[])
+ {
++	XWindowAttributes wa;
+ 	int i, fast = 0;
+ 
+ 	for (i = 1; i < argc; i++)
+@@ -630,11 +683,19 @@ main(int argc, char *argv[])
+ 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
+ 			fstrncmp = strncasecmp;
+ 			fstrstr = cistrstr;
++		} else if (!strcmp(argv[i], "-n")) { /* instant match */
++			instant = !instant;
+ 		} else if (i + 1 == argc)
+ 			usage();
+ 		/* these options take one argument */
+ 		else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
+ 			lines = atoi(argv[++i]);
++		else if (!strcmp(argv[i], "-x"))   /* window x offset */
++			dmx = atoi(argv[++i]);
++		else if (!strcmp(argv[i], "-y"))   /* window y offset (from bottom up if -b) */
++			dmy = atoi(argv[++i]);
++		else if (!strcmp(argv[i], "-W"))   /* make dmenu this wide */
++			dmw = atoi(argv[++i]);
+ 		else if (!strcmp(argv[i], "-m"))
+ 			mon = atoi(argv[++i]);
+ 		else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */
+@@ -642,29 +703,33 @@ main(int argc, char *argv[])
+ 		else if (!strcmp(argv[i], "-fn"))  /* font or font set */
+ 			fonts[0] = argv[++i];
+ 		else if (!strcmp(argv[i], "-nb"))  /* normal background color */
+-			normbgcolor = argv[++i];
++			colors[SchemeNorm][ColBg] = argv[++i];
+ 		else if (!strcmp(argv[i], "-nf"))  /* normal foreground color */
+-			normfgcolor = argv[++i];
++			colors[SchemeNorm][ColFg] = argv[++i];
+ 		else if (!strcmp(argv[i], "-sb"))  /* selected background color */
+-			selbgcolor = argv[++i];
++			colors[SchemeSel][ColBg] = argv[++i];
+ 		else if (!strcmp(argv[i], "-sf"))  /* selected foreground color */
+-			selfgcolor = argv[++i];
++			colors[SchemeSel][ColFg] = argv[++i];
++		else if (!strcmp(argv[i], "-w"))   /* embedding window id */
++			embed = argv[++i];
+ 		else
+ 			usage();
+ 
+ 	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
+ 		fputs("warning: no locale support\n", stderr);
+ 	if (!(dpy = XOpenDisplay(NULL)))
+-		die("cannot open display\n");
++		die("cannot open display");
+ 	screen = DefaultScreen(dpy);
+ 	root = RootWindow(dpy, screen);
+-	sw = DisplayWidth(dpy, screen);
+-	sh = DisplayHeight(dpy, screen);
+-	drw = drw_create(dpy, screen, root, sw, sh);
+-	drw_load_fonts(drw, fonts, LENGTH(fonts));
+-	if (!drw->fontcount)
+-		die("no fonts could be loaded.\n");
+-	drw_setscheme(drw, &scheme[SchemeNorm]);
++	if (!embed || !(parentwin = strtol(embed, NULL, 0)))
++		parentwin = root;
++	if (!XGetWindowAttributes(dpy, parentwin, &wa))
++		die("could not get embedding window attributes: 0x%lx",
++		    parentwin);
++	drw = drw_create(dpy, screen, root, wa.width, wa.height);
++	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
++		die("no fonts could be loaded.");
++	lrpad = drw->fonts->h;
+ 
+ 	if (fast) {
+ 		grabkeyboard();
+diff --git dmenu_path dmenu_path
+old mode 100644
+new mode 100755
+diff --git drw.c drw.c
+index 80e3c39..c1582e7 100644
+--- drw.c
++++ drw.c
+@@ -63,9 +63,8 @@ utf8decode(const char *c, long *u, size_t clen)
+ Drw *
+ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h)
+ {
+-	Drw *drw;
++	Drw *drw = ecalloc(1, sizeof(Drw));
+ 
+-	drw = ecalloc(1, sizeof(Drw));
+ 	drw->dpy = dpy;
+ 	drw->screen = screen;
+ 	drw->root = root;
+@@ -73,7 +72,6 @@ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h
+ 	drw->h = h;
+ 	drw->drawable = XCreatePixmap(dpy, root, w, h, DefaultDepth(dpy, screen));
+ 	drw->gc = XCreateGC(dpy, root, 0, NULL);
+-	drw->fontcount = 0;
+ 	XSetLineAttributes(dpy, drw->gc, 1, LineSolid, CapButt, JoinMiter);
+ 
+ 	return drw;
+@@ -82,6 +80,9 @@ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h
+ void
+ drw_resize(Drw *drw, unsigned int w, unsigned int h)
+ {
++	if (!drw)
++		return;
++
+ 	drw->w = w;
+ 	drw->h = h;
+ 	if (drw->drawable)
+@@ -92,142 +93,157 @@ drw_resize(Drw *drw, unsigned int w, unsigned int h)
+ void
+ drw_free(Drw *drw)
+ {
+-	size_t i;
+-
+-	for (i = 0; i < drw->fontcount; i++)
+-		drw_font_free(drw->fonts[i]);
+ 	XFreePixmap(drw->dpy, drw->drawable);
+ 	XFreeGC(drw->dpy, drw->gc);
+ 	free(drw);
+ }
+ 
+ /* This function is an implementation detail. Library users should use
+- * drw_font_create instead.
++ * drw_fontset_create instead.
+  */
+ static Fnt *
+-drw_font_xcreate(Drw *drw, const char *fontname, FcPattern *fontpattern)
++xfont_create(Drw *drw, const char *fontname, FcPattern *fontpattern)
+ {
+ 	Fnt *font;
+ 	XftFont *xfont = NULL;
+ 	FcPattern *pattern = NULL;
+ 
+ 	if (fontname) {
+-		/* Using the pattern found at font->xfont->pattern does not yield same
+-		 * the same substitution results as using the pattern returned by
++		/* Using the pattern found at font->xfont->pattern does not yield the
++		 * same substitution results as using the pattern returned by
+ 		 * FcNameParse; using the latter results in the desired fallback
+-		 * behaviour whereas the former just results in
+-		 * missing-character-rectangles being drawn, at least with some fonts.
+-		 */
++		 * behaviour whereas the former just results in missing-character
++		 * rectangles being drawn, at least with some fonts. */
+ 		if (!(xfont = XftFontOpenName(drw->dpy, drw->screen, fontname))) {
+-			fprintf(stderr, "error, cannot load font: '%s'\n", fontname);
++			fprintf(stderr, "error, cannot load font from name: '%s'\n", fontname);
+ 			return NULL;
+ 		}
+ 		if (!(pattern = FcNameParse((FcChar8 *) fontname))) {
+-			fprintf(stderr, "error, cannot load font: '%s'\n", fontname);
++			fprintf(stderr, "error, cannot parse font name to pattern: '%s'\n", fontname);
+ 			XftFontClose(drw->dpy, xfont);
+ 			return NULL;
+ 		}
+ 	} else if (fontpattern) {
+ 		if (!(xfont = XftFontOpenPattern(drw->dpy, fontpattern))) {
+-			fprintf(stderr, "error, cannot load font pattern.\n");
++			fprintf(stderr, "error, cannot load font from pattern.\n");
+ 			return NULL;
+ 		}
+ 	} else {
+-		die("no font specified.\n");
++		die("no font specified.");
+ 	}
+ 
+ 	font = ecalloc(1, sizeof(Fnt));
+ 	font->xfont = xfont;
+ 	font->pattern = pattern;
+-	font->ascent = xfont->ascent;
+-	font->descent = xfont->descent;
+-	font->h = font->ascent + font->descent;
++	font->h = xfont->ascent + xfont->descent;
+ 	font->dpy = drw->dpy;
+ 
+ 	return font;
+ }
+ 
+-Fnt*
+-drw_font_create(Drw *drw, const char *fontname)
++static void
++xfont_free(Fnt *font)
+ {
+-	return drw_font_xcreate(drw, fontname, NULL);
++	if (!font)
++		return;
++	if (font->pattern)
++		FcPatternDestroy(font->pattern);
++	XftFontClose(font->dpy, font->xfont);
++	free(font);
+ }
+ 
+-void
+-drw_load_fonts(Drw* drw, const char *fonts[], size_t fontcount)
++Fnt*
++drw_fontset_create(Drw* drw, const char *fonts[], size_t fontcount)
+ {
++	Fnt *cur, *ret = NULL;
+ 	size_t i;
+-	Fnt *font;
+ 
+-	for (i = 0; i < fontcount; i++) {
+-		if (drw->fontcount >= DRW_FONT_CACHE_SIZE) {
+-			die("Font cache exhausted.\n");
+-		} else if ((font = drw_font_xcreate(drw, fonts[i], NULL))) {
+-			drw->fonts[drw->fontcount++] = font;
++	if (!drw || !fonts)
++		return NULL;
++
++	for (i = 1; i <= fontcount; i++) {
++		if ((cur = xfont_create(drw, fonts[fontcount - i], NULL))) {
++			cur->next = ret;
++			ret = cur;
+ 		}
+ 	}
++	return (drw->fonts = ret);
+ }
+ 
+ void
+-drw_font_free(Fnt *font)
++drw_fontset_free(Fnt *font)
+ {
+-	if (!font)
+-		return;
+-	if (font->pattern)
+-		FcPatternDestroy(font->pattern);
+-	XftFontClose(font->dpy, font->xfont);
+-	free(font);
++	if (font) {
++		drw_fontset_free(font->next);
++		xfont_free(font);
++	}
+ }
+ 
+-Clr *
+-drw_clr_create(Drw *drw, const char *clrname)
++void
++drw_clr_create(Drw *drw, Clr *dest, const char *clrname)
+ {
+-	Clr *clr;
++	if (!drw || !dest || !clrname)
++		return;
+ 
+-	clr = ecalloc(1, sizeof(Clr));
+ 	if (!XftColorAllocName(drw->dpy, DefaultVisual(drw->dpy, drw->screen),
+ 	                       DefaultColormap(drw->dpy, drw->screen),
+-	                       clrname, &clr->rgb))
+-		die("error, cannot allocate color '%s'\n", clrname);
+-	clr->pix = clr->rgb.pixel;
++	                       clrname, dest))
++		die("error, cannot allocate color '%s'", clrname);
++}
++
++/* Wrapper to create color schemes. The caller has to call free(3) on the
++ * returned color scheme when done using it. */
++Clr *
++drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount)
++{
++	size_t i;
++	Clr *ret;
+ 
+-	return clr;
++	/* need at least two colors for a scheme */
++	if (!drw || !clrnames || clrcount < 2 || !(ret = ecalloc(clrcount, sizeof(XftColor))))
++		return NULL;
++
++	for (i = 0; i < clrcount; i++)
++		drw_clr_create(drw, &ret[i], clrnames[i]);
++	return ret;
+ }
+ 
+ void
+-drw_clr_free(Clr *clr)
++drw_setfontset(Drw *drw, Fnt *set)
+ {
+-	free(clr);
++	if (drw)
++		drw->fonts = set;
+ }
+ 
+ void
+-drw_setscheme(Drw *drw, ClrScheme *scheme)
++drw_setscheme(Drw *drw, Clr *scm)
+ {
+-	drw->scheme = scheme;
++	if (drw)
++		drw->scheme = scm;
+ }
+ 
+ void
+-drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int empty, int invert)
++drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert)
+ {
+-	if (!drw->scheme)
++	if (!drw || !drw->scheme)
+ 		return;
+-	XSetForeground(drw->dpy, drw->gc, invert ? drw->scheme->bg->pix : drw->scheme->fg->pix);
++	XSetForeground(drw->dpy, drw->gc, invert ? drw->scheme[ColBg].pixel : drw->scheme[ColFg].pixel);
+ 	if (filled)
+-		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w + 1, h + 1);
+-	else if (empty)
+-		XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
++		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
++	else
++		XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
+ }
+ 
+ int
+-drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, const char *text, int invert)
++drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert)
+ {
+ 	char buf[1024];
+-	int tx, ty, th;
+-	Extnts tex;
++	int ty;
++	unsigned int ew;
+ 	XftDraw *d = NULL;
+-	Fnt *curfont, *nextfont;
++	Fnt *usedfont, *curfont, *nextfont;
+ 	size_t i, len;
+-	int utf8strlen, utf8charlen, render;
++	int utf8strlen, utf8charlen, render = x || y || w || h;
+ 	long utf8codepoint = 0;
+ 	const char *utf8str;
+ 	FcCharSet *fccharset;
+@@ -236,66 +252,67 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, const char *tex
+ 	XftResult result;
+ 	int charexists = 0;
+ 
+-	if (!drw->scheme || !drw->fontcount)
++	if (!drw || (render && !drw->scheme) || !text || !drw->fonts)
+ 		return 0;
+ 
+-	if (!(render = x || y || w || h)) {
++	if (!render) {
+ 		w = ~w;
+ 	} else {
+-		XSetForeground(drw->dpy, drw->gc, invert ?
+-		               drw->scheme->fg->pix : drw->scheme->bg->pix);
++		XSetForeground(drw->dpy, drw->gc, drw->scheme[invert ? ColFg : ColBg].pixel);
+ 		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+ 		d = XftDrawCreate(drw->dpy, drw->drawable,
+ 		                  DefaultVisual(drw->dpy, drw->screen),
+ 		                  DefaultColormap(drw->dpy, drw->screen));
++		x += lpad;
++		w -= lpad;
+ 	}
+ 
+-	curfont = drw->fonts[0];
++	usedfont = drw->fonts;
+ 	while (1) {
+ 		utf8strlen = 0;
+ 		utf8str = text;
+ 		nextfont = NULL;
+ 		while (*text) {
+ 			utf8charlen = utf8decode(text, &utf8codepoint, UTF_SIZ);
+-			for (i = 0; i < drw->fontcount; i++) {
+-				charexists = charexists || XftCharExists(drw->dpy, drw->fonts[i]->xfont, utf8codepoint);
++			for (curfont = drw->fonts; curfont; curfont = curfont->next) {
++				charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
+ 				if (charexists) {
+-					if (drw->fonts[i] == curfont) {
++					if (curfont == usedfont) {
+ 						utf8strlen += utf8charlen;
+ 						text += utf8charlen;
+ 					} else {
+-						nextfont = drw->fonts[i];
++						nextfont = curfont;
+ 					}
+ 					break;
+ 				}
+ 			}
+ 
+-			if (!charexists || (nextfont && nextfont != curfont))
++			if (!charexists || nextfont)
+ 				break;
+ 			else
+ 				charexists = 0;
+ 		}
+ 
+ 		if (utf8strlen) {
+-			drw_font_getexts(curfont, utf8str, utf8strlen, &tex);
++			drw_font_getexts(usedfont, utf8str, utf8strlen, &ew, NULL);
+ 			/* shorten text if necessary */
+-			for (len = MIN(utf8strlen, (sizeof buf) - 1); len && (tex.w > w - drw->fonts[0]->h || w < drw->fonts[0]->h); len--)
+-				drw_font_getexts(curfont, utf8str, len, &tex);
++			for (len = MIN(utf8strlen, sizeof(buf) - 1); len && ew > w; len--)
++				drw_font_getexts(usedfont, utf8str, len, &ew, NULL);
+ 
+ 			if (len) {
+ 				memcpy(buf, utf8str, len);
+ 				buf[len] = '\0';
+ 				if (len < utf8strlen)
+-					for (i = len; i && i > len - 3; buf[--i] = '.');
++					for (i = len; i && i > len - 3; buf[--i] = '.')
++						; /* NOP */
+ 
+ 				if (render) {
+-					th = curfont->ascent + curfont->descent;
+-					ty = y + (h / 2) - (th / 2) + curfont->ascent;
+-					tx = x + (h / 2);
+-					XftDrawStringUtf8(d, invert ? &drw->scheme->bg->rgb : &drw->scheme->fg->rgb, curfont->xfont, tx, ty, (XftChar8 *)buf, len);
++					ty = y + (h - usedfont->h) / 2 + usedfont->xfont->ascent;
++					XftDrawStringUtf8(d, &drw->scheme[invert ? ColBg : ColFg],
++					                  usedfont->xfont, x, ty, (XftChar8 *)buf, len);
+ 				}
+-				x += tex.w;
+-				w -= tex.w;
++				x += ew;
++				w -= ew;
+ 			}
+ 		}
+ 
+@@ -303,26 +320,21 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, const char *tex
+ 			break;
+ 		} else if (nextfont) {
+ 			charexists = 0;
+-			curfont = nextfont;
++			usedfont = nextfont;
+ 		} else {
+ 			/* Regardless of whether or not a fallback font is found, the
+-			 * character must be drawn.
+-			 */
++			 * character must be drawn. */
+ 			charexists = 1;
+ 
+-			if (drw->fontcount >= DRW_FONT_CACHE_SIZE)
+-				continue;
+-
+ 			fccharset = FcCharSetCreate();
+ 			FcCharSetAddChar(fccharset, utf8codepoint);
+ 
+-			if (!drw->fonts[0]->pattern) {
+-				/* Refer to the comment in drw_font_xcreate for more
+-				 * information. */
+-				die("the first font in the cache must be loaded from a font string.\n");
++			if (!drw->fonts->pattern) {
++				/* Refer to the comment in xfont_create for more information. */
++				die("the first font in the cache must be loaded from a font string.");
+ 			}
+ 
+-			fcpattern = FcPatternDuplicate(drw->fonts[0]->pattern);
++			fcpattern = FcPatternDuplicate(drw->fonts->pattern);
+ 			FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
+ 			FcPatternAddBool(fcpattern, FC_SCALABLE, FcTrue);
+ 
+@@ -334,12 +346,14 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, const char *tex
+ 			FcPatternDestroy(fcpattern);
+ 
+ 			if (match) {
+-				curfont = drw_font_xcreate(drw, NULL, match);
+-				if (curfont && XftCharExists(drw->dpy, curfont->xfont, utf8codepoint)) {
+-					drw->fonts[drw->fontcount++] = curfont;
++				usedfont = xfont_create(drw, NULL, match);
++				if (usedfont && XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint)) {
++					for (curfont = drw->fonts; curfont->next; curfont = curfont->next)
++						; /* NOP */
++					curfont->next = usedfont;
+ 				} else {
+-					drw_font_free(curfont);
+-					curfont = drw->fonts[0];
++					xfont_free(usedfont);
++					usedfont = drw->fonts;
+ 				}
+ 			}
+ 		}
+@@ -347,34 +361,40 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, const char *tex
+ 	if (d)
+ 		XftDrawDestroy(d);
+ 
+-	return x;
++	return x + (render ? w : 0);
+ }
+ 
+ void
+ drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h)
+ {
++	if (!drw)
++		return;
++
+ 	XCopyArea(drw->dpy, drw->drawable, win, drw->gc, x, y, w, h, x, y);
+ 	XSync(drw->dpy, False);
+ }
+ 
+-void
+-drw_font_getexts(Fnt *font, const char *text, unsigned int len, Extnts *tex)
++unsigned int
++drw_fontset_getwidth(Drw *drw, const char *text)
+ {
+-	XGlyphInfo ext;
+-
+-	XftTextExtentsUtf8(font->dpy, font->xfont, (XftChar8 *)text, len, &ext);
+-	tex->h = font->h;
+-	tex->w = ext.xOff;
++	if (!drw || !drw->fonts || !text)
++		return 0;
++	return drw_text(drw, 0, 0, 0, 0, 0, text, 0);
+ }
+ 
+-unsigned int
+-drw_font_getexts_width(Fnt *font, const char *text, unsigned int len)
++void
++drw_font_getexts(Fnt *font, const char *text, unsigned int len, unsigned int *w, unsigned int *h)
+ {
+-	Extnts tex;
++	XGlyphInfo ext;
+ 
+-	drw_font_getexts(font, text, len, &tex);
++	if (!font || !text)
++		return;
+ 
+-	return tex.w;
++	XftTextExtentsUtf8(font->dpy, font->xfont, (XftChar8 *)text, len, &ext);
++	if (w)
++		*w = ext.xOff;
++	if (h)
++		*h = font->h;
+ }
+ 
+ Cur *
+@@ -382,7 +402,9 @@ drw_cur_create(Drw *drw, int shape)
+ {
+ 	Cur *cur;
+ 
+-	cur = ecalloc(1, sizeof(Cur));
++	if (!drw || !(cur = ecalloc(1, sizeof(Cur))))
++		return NULL;
++
+ 	cur->cursor = XCreateFontCursor(drw->dpy, shape);
+ 
+ 	return cur;
+@@ -393,6 +415,7 @@ drw_cur_free(Drw *drw, Cur *cursor)
+ {
+ 	if (!cursor)
+ 		return;
++
+ 	XFreeCursor(drw->dpy, cursor->cursor);
+ 	free(cursor);
+ }
+diff --git drw.h drw.h
+index e3b8515..4c67419 100644
+--- drw.h
++++ drw.h
+@@ -1,29 +1,19 @@
+ /* See LICENSE file for copyright and license details. */
+-#define DRW_FONT_CACHE_SIZE 32
+-
+-typedef struct {
+-	unsigned long pix;
+-	XftColor rgb;
+-} Clr;
+ 
+ typedef struct {
+ 	Cursor cursor;
+ } Cur;
+ 
+-typedef struct {
++typedef struct Fnt {
+ 	Display *dpy;
+-	int ascent;
+-	int descent;
+ 	unsigned int h;
+ 	XftFont *xfont;
+ 	FcPattern *pattern;
++	struct Fnt *next;
+ } Fnt;
+ 
+-typedef struct {
+-	Clr *fg;
+-	Clr *bg;
+-	Clr *border;
+-} ClrScheme;
++enum { ColFg, ColBg }; /* Clr scheme index */
++typedef XftColor Clr;
+ 
+ typedef struct {
+ 	unsigned int w, h;
+@@ -32,43 +22,36 @@ typedef struct {
+ 	Window root;
+ 	Drawable drawable;
+ 	GC gc;
+-	ClrScheme *scheme;
+-	size_t fontcount;
+-	Fnt *fonts[DRW_FONT_CACHE_SIZE];
++	Clr *scheme;
++	Fnt *fonts;
+ } Drw;
+ 
+-typedef struct {
+-	unsigned int w;
+-	unsigned int h;
+-} Extnts;
+-
+ /* Drawable abstraction */
+-Drw *drw_create(Display *, int, Window, unsigned int, unsigned int);
+-void drw_resize(Drw *, unsigned int, unsigned int);
+-void drw_free(Drw *);
++Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h);
++void drw_resize(Drw *drw, unsigned int w, unsigned int h);
++void drw_free(Drw *drw);
+ 
+ /* Fnt abstraction */
+-Fnt *drw_font_create(Drw *, const char *);
+-void drw_load_fonts(Drw *, const char *[], size_t);
+-void drw_font_free(Fnt *);
+-void drw_font_getexts(Fnt *, const char *, unsigned int, Extnts *);
+-unsigned int drw_font_getexts_width(Fnt *, const char *, unsigned int);
++Fnt *drw_fontset_create(Drw* drw, const char *fonts[], size_t fontcount);
++void drw_fontset_free(Fnt* set);
++unsigned int drw_fontset_getwidth(Drw *drw, const char *text);
++void drw_font_getexts(Fnt *font, const char *text, unsigned int len, unsigned int *w, unsigned int *h);
+ 
+-/* Colour abstraction */
+-Clr *drw_clr_create(Drw *, const char *);
+-void drw_clr_free(Clr *);
++/* Colorscheme abstraction */
++void drw_clr_create(Drw *drw, Clr *dest, const char *clrname);
++Clr *drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount);
+ 
+ /* Cursor abstraction */
+-Cur *drw_cur_create(Drw *, int);
+-void drw_cur_free(Drw *, Cur *);
++Cur *drw_cur_create(Drw *drw, int shape);
++void drw_cur_free(Drw *drw, Cur *cursor);
+ 
+ /* Drawing context manipulation */
+-void drw_setfont(Drw *, Fnt *);
+-void drw_setscheme(Drw *, ClrScheme *);
++void drw_setfontset(Drw *drw, Fnt *set);
++void drw_setscheme(Drw *drw, Clr *scm);
+ 
+ /* Drawing functions */
+-void drw_rect(Drw *, int, int, unsigned int, unsigned int, int, int, int);
+-int drw_text(Drw *, int, int, unsigned int, unsigned int, const char *, int);
++void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
++int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
+ 
+ /* Map functions */
+-void drw_map(Drw *, Window, int, int, unsigned int, unsigned int);
++void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
+diff --git util.c util.c
+index 6b703e9..fe044fc 100644
+--- util.c
++++ util.c
+@@ -12,7 +12,7 @@ ecalloc(size_t nmemb, size_t size)
+ 	void *p;
+ 
+ 	if (!(p = calloc(nmemb, size)))
+-		perror(NULL);
++		die("calloc:");
+ 	return p;
+ }
+ 
+@@ -27,6 +27,8 @@ die(const char *fmt, ...) {
+ 	if (fmt[0] && fmt[strlen(fmt)-1] == ':') {
+ 		fputc(' ', stderr);
+ 		perror(NULL);
++	} else {
++		fputc('\n', stderr);
+ 	}
+ 
+ 	exit(1);
+diff --git util.h util.h
+index cded043..f633b51 100644
+--- util.h
++++ util.h
+@@ -4,5 +4,5 @@
+ #define MIN(A, B)               ((A) < (B) ? (A) : (B))
+ #define BETWEEN(X, A, B)        ((A) <= (X) && (X) <= (B))
+ 
+-void die(const char *errstr, ...);
+-void *ecalloc(size_t, size_t);
++void die(const char *fmt, ...);
++void *ecalloc(size_t nmemb, size_t size);
