@@ -1,0 +1,27 @@
+diff --git config.def.h config.def.h
+index 7601f49..a7108d9 100644
+--- config.def.h
++++ config.def.h
+@@ -10,13 +10,13 @@ static char *notifyext = ""; /* Notify with extra command (eg. play an alarm) */
+  */
+ static Timers timers[] = {
+ 	/* timer(s)  comment */
+-	{     1500,  "Time to start working!"},
+-	{      300,  "Time to start resting!"},
+-	{     1500,  "Time to start working!"},
+-	{      300,  "Time to start resting!"},
+-	{     1500,  "Time to start working!"},
+-	{      300,  "Time to start resting!"},
+-	{     1500,  "Time to start working!"},
+-	{      300,  "Time to start resting!"},
+-	{      900,  "Time to take some nap!"},
++	{     1500,  "time to start working!"},
++	{      300,  "time to rest!"},
++	{     1500,  "time to start working!"},
++	{      300,  "time to rest!"},
++	{     1500,  "time to start working!"},
++	{      300,  "time to rest!"},
++	{     1500,  "time to start working!"},
++	{      300,  "time to rest!"},
++	{      900,  "time to *yawn* nap!"},
+ };
