@@ -17,36 +17,36 @@
 # one (order top->bottom) is preferred over the next ones.
 #
 libc.so musl-0.9.9_1
-libc.so.6 glibc-2.8_1
-libm.so.6 glibc-2.8_1
-libpthread.so.0 glibc-2.8_1
-librt.so.1 glibc-2.8_1
-libdl.so.2 glibc-2.8_1
-ld-linux-x86-64.so.2 glibc-2.8_1 x86_64
-ld-linux.so.2 glibc-2.8_1 i686
-ld-linux.so.3 glibc-2.17_1 armv5tel
-ld-linux-aarch64.so.1 glibc-2.19_1 aarch64
-ld.so.1 glibc-2.17_1 mips
-ld-linux-armhf.so.3 glibc-2.17_1
-libresolv.so.2 glibc-2.8_1
-libanl.so.1 glibc-2.8_1
-libthread_db.so.1 glibc-2.8_1
-libutil.so.1 glibc-2.8_1
-libnsl.so.1 glibc-2.8_1
-libnss_db.so.2 glibc-2.22_1
-libnss_files.so.2 glibc-2.8_1
-libnss_compat.so.2 glibc-2.8_1
-libnss_dns.so.2 glibc-2.8_1
-libnss_hesiod.so.2 glibc-2.8_1
-libnss_nisplus.so.2 glibc-2.8_1
-libnss_nis.so.2 glibc-2.8_1
-libcrypt.so.1 glibc-2.8_1
-libBrokenLocale.so.1 glibc-2.8_1
-libmemusage.so glibc-2.8_1
-libSegFault.so glibc-2.8_1
-libpcprofile.so glibc-2.8_1
-libcidn.so.1 glibc-2.8_1
-libmvec.so.1 glibc-2.22_1
+libc.so.6 glibc-2.25_1
+libm.so.6 glibc-2.25_1
+libpthread.so.0 glibc-2.25_1
+librt.so.1 glibc-2.25_1
+libdl.so.2 glibc-2.25_1
+ld-linux-x86-64.so.2 glibc-2.25_1 x86_64
+ld-linux.so.2 glibc-2.25_1 i686
+ld-linux.so.3 glibc-2.25_1 armv5tel
+ld-linux-aarch64.so.1 glibc-2.25_1 aarch64
+ld.so.1 glibc-2.25_1 mips
+ld-linux-armhf.so.3 glibc-2.25_1
+libresolv.so.2 glibc-2.25_1
+libanl.so.1 glibc-2.25_1
+libthread_db.so.1 glibc-2.25_1
+libutil.so.1 glibc-2.25_1
+libnsl.so.1 glibc-2.25_1
+libnss_db.so.2 glibc-2.25_1
+libnss_files.so.2 glibc-2.25_1
+libnss_compat.so.2 glibc-2.25_1
+libnss_dns.so.2 glibc-2.25_1
+libnss_hesiod.so.2 glibc-2.25_1
+libnss_nisplus.so.2 glibc-2.25_1
+libnss_nis.so.2 glibc-2.25_1
+libcrypt.so.1 glibc-2.25_1
+libBrokenLocale.so.1 glibc-2.25_1
+libmemusage.so glibc-2.25_1
+libSegFault.so glibc-2.25_1
+libpcprofile.so glibc-2.25_1
+libcidn.so.1 glibc-2.25_1
+libmvec.so.1 glibc-2.25_1
 libz.so.1 zlib-1.2.3_1
 libbz2.so.1 bzip2-1.0.5_1
 libarchive.so.13 libarchive-3.1.2_1
@@ -360,7 +360,7 @@ libMagickCore-6.Q16.so.4 libmagick-6.9.7.6_1
 libMagickWand-6.Q16.so.4 libmagick-6.9.7.6_1
 libMagick++-6.Q16.so.7 libmagick-6.9.6.8_1
 libltdl.so.7 libltdl-2.2.6_1
-libpoppler.so.66 poppler-0.50.0_1
+libpoppler.so.67 poppler-0.53.0_1
 libpoppler-glib.so.8 poppler-glib-0.18.2_1
 libpoppler-cpp.so.0 poppler-cpp-0.18.2_1
 libpoppler-qt4.so.4 poppler-qt4-0.22.3_1
@@ -469,7 +469,7 @@ libphysfs.so.1 physfs-2.0.0_1
 libSDL_ttf-2.0.so.0 SDL_ttf-2.0.9_1
 libparted.so.2 libparted-3.1_1
 libparted-fs-resize.so.0 libparted-3.1_1
-libntfs-3g.so.87 ntfs-3g-2016.2.22_1
+libntfs-3g.so.88 ntfs-3g-2017.3.23_1
 libruby.so.2.4 ruby-2.4.0_1
 libxenctrl.so.4.7 xen-libs-4.7_1
 libxenguest.so.4.7 xen-libs-4.7_1
@@ -488,14 +488,14 @@ libKF5SyntaxHighlighting.so.5 syntax-highlighting-5.29.0_1
 libbabl-0.1.so.0 babl-0.1.10_1
 libbamf3.so.2 bamf-0.5.1_1
 libgegl-0.2.so.0 gegl-0.2.0_1
-libiculx.so.57 icu-libs-57.1_1
-libicule.so.57 icu-libs-57.1_1
-libicuio.so.57 icu-libs-57.1_1
-libicui18n.so.57 icu-libs-57.1_1
-libicudata.so.57 icu-libs-57.1_1
-libicutu.so.57 icu-libs-57.1_1
-libicuuc.so.57 icu-libs-57.1_1
-libicutest.so.57 icu-libs-57.1_1
+libiculx.so.58 icu-libs-58.2_1
+libicule.so.58 icu-libs-58.2_1
+libicuio.so.58 icu-libs-58.2_1
+libicui18n.so.58 icu-libs-58.2_1
+libicudata.so.58 icu-libs-58.2_1
+libicutu.so.58 icu-libs-58.2_1
+libicuuc.so.58 icu-libs-58.2_1
+libicutest.so.58 icu-libs-58.2_1
 libaspell.so.15 aspell-0.60_1
 libpspell.so.15 aspell-0.60_1
 libenchant.so.1 enchant-1.4.2_1
@@ -650,9 +650,9 @@ libsasl2.so.3 libsasl-2.1.26_1
 liblber-2.4.so.2 libldap-2.4.21_1
 libldap-2.4.so.2 libldap-2.4.21_1
 libldap_r-2.4.so.2 libldap-2.4.21_1
-libevent-2.0.so.5 libevent-2.0.10_1
-libevent_core-2.0.so.5 libevent-2.0.21_1
-libevent_pthreads-2.0.so.5 libevent-2.0.21_1
+libevent-2.1.so.6 libevent-2.1.8_1
+libevent_core-2.1.so.6 libevent-2.1.8_1
+libevent_pthreads-2.1.so.6 libevent-2.1.8_1
 libSDL_mixer-1.2.so.0 SDL_mixer-1.2.11_1
 libapr-1.so.0 apr-1.4.2_1
 libaprutil-1.so.0 apr-util-1.3.9_1
@@ -819,10 +819,10 @@ libquadmath.so.0 libquadmath-4.4.0_1
 libgfortran.so.3 libgfortran-4.4.0_1
 libblktapctl.so.1 xen-4.1.2_1
 libmozjs185.so.1.0 js-1.8.5_1
-libwebp.so.6 libwebp-0.5.0_1
-libwebpmux.so.2 libwebp-0.5.0_1
+libwebp.so.7 libwebp-0.6.0_1
+libwebpmux.so.3 libwebp-0.6.0_1
 libwebpdemux.so.2 libwebp-0.5.0_1
-libwebpdecoder.so.2 libwebp-0.5.0_1
+libwebpdecoder.so.3 libwebp-0.6.0_1
 libva-x11.so.1 libva-1.0.14_1
 libva.so.1 libva-1.0.14_1
 libva-glx.so.1 libva-glx-1.5.0_1
@@ -1819,7 +1819,7 @@ libgioftp.so.2 fontforge-2.0.20140101_3
 libfontforge.so.2 fontforge-2.0.20140101_3
 libgdraw.so.5 fontforge-2.0.20140101_3
 libfontforgeexe.so.2 fontforge-2.0.20140101_3
-libwraster.so.5 WindowMaker-0.95.6_3
+libwraster.so.6 WindowMaker-0.95.8_1
 libWUtil.so.5 WindowMaker-0.95.6_3
 libWINGs.so.3 WindowMaker-0.95.6_3
 libWMaker.so.1 WindowMaker-0.95.6_3
@@ -1985,10 +1985,10 @@ libfcitx-qt.so.0 libfcitx-qt-4.2.8_1
 liblastfm.so.1 liblastfm-1.0.9_1
 liblastfm_fingerprint.so.1 liblastfm-1.0.9_1
 libfcitx-qt5.so.0 libfcitx-qt5-0.1.3_1
-libdruntime-ldc-debug.so.70 ldc-runtime-1.0.0_1
-libdruntime-ldc.so.70 ldc-runtime-1.0.0_1
-libphobos2-ldc.so.70 ldc-runtime-1.0.0_1
-libphobos2-ldc-debug.so.70 ldc-runtime-1.0.0_1
+libdruntime-ldc-debug.so.71 ldc-runtime-1.1.1_1
+libdruntime-ldc.so.71 ldc-runtime-1.1.1_1
+libphobos2-ldc.so.71 ldc-runtime-1.1.1_1
+libphobos2-ldc-debug.so.71 ldc-runtime-1.1.1_1
 libmarblewidget.so.19 marble-4.14.3_2
 libastro.so.1 marble-4.14.3_2
 libparrot.so.6.9.0 parrot-6.9.0_1
@@ -2071,7 +2071,7 @@ libcvm-v1client.so.1 cvm-0.97_1
 libcvm-v2client.so.1 cvm-0.97_1
 libudns.so.0 udns-0.4_1
 libcriu.so.1 criu-1.5.1_2
-libwebsockets.so.9 libwebsockets-2.1.0_1
+libwebsockets.so.10 libwebsockets-2.2.0_1
 libbitcoinconsensus.so.0 litecoin-0.10.1.2_1
 libnfc.so.0 libnfc-1.7.1_1
 libfuzzy.so.2 libfuzzy-2.12_1
@@ -2610,7 +2610,7 @@ libsss_simpleifp.so.0 sssd-1.13.4_1
 libforms.so.2 xforms-1.2.4_2
 libflimage.so.2 xforms-1.2.4_2
 libutilspp.so.0 curlpp-0.7.3_2
-libcurlpp.so.0 curlpp-0.7.3_2
+libcurlpp.so.1 curlpp-0.8.1_1
 libtcd.so.1 libtcd-2.2.7.r2_1
 libaccounts-glib.so.0 libaccounts-glib-1.21_1
 libaccounts-qt5.so.1 libaccounts-qt5-1.14_1
@@ -2799,3 +2799,5 @@ libomxvideosched.so.0 libomxil-bellagio-0.9.3_1
 libnss_libvirt_guest.so.2 libvirt-3.1.0_1
 libvirt-admin.so.0 libvirt-3.1.0_1
 libnss_libvirt.so.2 libvirt-3.1.0_1
+libassimp.so.3 libassimp-3.3.1_1
+libdouble-conversion.so.1 double-conversion-2.0.1_1

@@ -1,7 +1,7 @@
 # Template file for 'evolution-data-server'
 pkgname=evolution-data-server
-version=3.22.5
-revision=1
+version=3.22.6
+revision=2
 build_style=gnu-configure
 configure_args="--with-openldap --disable-uoa
  --with-krb5=${XBPS_CROSS_BASE}/usr
@@ -18,7 +18,11 @@ maintainer="Juan RP <xtraeme@voidlinux.eu>"
 license="GPL-2"
 homepage="http://www.gnome.org"
 distfiles="${GNOME_SITE}/$pkgname/${version%.*}/$pkgname-$version.tar.xz"
-checksum=53d53b3618c238ec9d77f3866743a4b8db7e4153c5f14c5cf3eca2b21e91d392
+checksum=0a69b9d2c03f7a6f68abbd7c7f8c76d333aca9e6102e796d88daed3284e91ca6
+
+case "$XBPS_TARGET_MACHINE" in
+	aarch64*) broken="webkit2gtk broken for now";;
+esac
 
 build_options="gir"
 if [ -z "$CROSS_BUILD" ]; then
