@@ -1,6 +1,6 @@
 # Template build file for 'libGL'.
 pkgname=libGL
-version=17.0.2
+version=17.0.4
 revision=1
 wrksrc="mesa-${version}"
 build_style=gnu-configure
@@ -13,7 +13,7 @@ maintainer="Juan RP <xtraeme@voidlinux.eu>"
 homepage="http://www.mesa3d.org/"
 license="MIT, LGPL-2.1"
 distfiles="https://mesa.freedesktop.org/archive/mesa-${version}.tar.xz"
-checksum=f8f191f909e01e65de38d5bdea5fb057f21649a3aed20948be02348e77a689d4
+checksum=1269dc8545a193932a0779b2db5bce9be4a5f6813b98c38b93b372be8362a346
 
 hostmakedepends="
  automake libtool flex pkg-config llvm python-Mako libxml2-python $(vopt_if wayland wayland-devel)"
@@ -64,7 +64,7 @@ esac
 subpackages+=" MesaLib-devel"
 
 case "$XBPS_TARGET_MACHINE" in
-	i686*) configure_args+=" --with-dri-driverdir=/usr/lib32/xorg/modules/drivers";;
+	i686) configure_args+=" --with-dri-driverdir=/usr/lib32/xorg/modules/drivers";;
 	*) configure_args+=" --with-dri-driverdir=/usr/lib/xorg/modules/drivers";;
 esac
 case "$XBPS_TARGET_MACHINE" in

@@ -1,7 +1,7 @@
 # Template file for 'rspamd'
 pkgname=rspamd
-version=1.5.3
-revision=2
+version=1.5.6
+revision=1
 build_style=cmake
 configure_args="
  -DRSPAMD_USER=rspamd
@@ -15,13 +15,10 @@ maintainer="Enno Boland <gottox@voidlinux.eu>"
 license="BSD"
 homepage="http://rspamd.com/"
 distfiles="http://rspamd.com/downloads/rspamd-${version}.tar.xz"
-checksum=a692f7eab27321924c5326efeae809ab2703fdf60b652446e9a232312d8a1e35
+checksum=cda2a5b93f0e57b890767514ce00a2660baf9d48627f7367a36fe938ade14f31
 system_accounts="rspamd"
 rspamd_homedir="/var/lib/rspamd"
 conf_files="/etc/rspamd/*.conf /etc/rspamd/*.inc /etc/rspamd/modules.d/*.conf"
-case "$XBPS_TARGET_MACHINE" in
-	armv*) broken="https://build.voidlinux.eu/builders/armv6l_builder/builds/29680/steps/shell_3/logs/stdio" ;;
-esac
 
 if [ "$CROSS_BUILD" ]; then
 	hostmakedepends+=" $makedepends"
