@@ -1,7 +1,7 @@
 # Template file for 'litecoin'
 pkgname=litecoin
 version=0.13.2.1
-revision=2
+revision=3
 build_style=gnu-configure
 configure_args="--with-incompatible-bdb --with-gui=qt5 --disable-static --disable-tests
  --with-libressl"
@@ -15,6 +15,10 @@ homepage="http://www.litecoin.org/"
 distfiles="https://github.com/litecoin-project/litecoin/archive/v${version}.tar.gz"
 checksum=cb07472b32f713bb37ea37cfcc336816a38c8684844c259c89203ed9fe54f85b
 nocross=yes
+
+case "$XBPS_TARGET_MACHINE" in
+	*-musl) broken="https://build.voidlinux.eu/builders/x86_64-musl_builder/builds/2372/steps/shell_3/logs/stdio"
+esac
 
 pre_configure() {
 	NOCONFIGURE=1 ./autogen.sh
