@@ -3,6 +3,7 @@ pkgname=st
 version=0.7
 revision=1
 build_style=gnu-makefile
+make_use_env=compliant
 hostmakedepends="pkg-config"
 makedepends="fontconfig-devel libX11-devel libXft-devel"
 depends="ncurses"
