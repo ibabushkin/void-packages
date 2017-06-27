@@ -1,7 +1,7 @@
 # Template file for 'hugo'
 pkgname=hugo
-version=0.21
-revision=2
+version=0.24.1
+revision=1
 build_style=go
 hostmakedepends="git-perl mercurial"
 depends="python-Pygments"
@@ -11,7 +11,7 @@ maintainer="Andrea Brancaleoni <abc@pompel.me>"
 license="SimPL-2"
 homepage="http://gohugo.io"
 distfiles="https://${go_import_path}/archive/v${version}.tar.gz"
-checksum=0de62da92e9457523463676536b57d4cae72b434edf9dcb650264cd122dfaa52
+checksum=c7a5d56b528dde7c8a12044f7ede1f9d8c1c8401969ebef9a11695d00f8d3d55
 
 post_install() {
 	vlicense LICENSE.md

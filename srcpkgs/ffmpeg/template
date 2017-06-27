@@ -1,13 +1,13 @@
 # Template file for 'ffmpeg'
 pkgname=ffmpeg
-version=3.3.1
-revision=1
+version=3.3.2
+revision=2
 short_desc="Decoding, encoding and streaming software"
 maintainer="Juan RP <xtraeme@voidlinux.eu>"
 license="GPL-3"
-homepage="https://www.ffmpeg.org"
+homepage="http://www.ffmpeg.org"
 distfiles="${homepage}/releases/ffmpeg-${version}.tar.xz"
-checksum=b702a7fc656ac23e276b8c823a2f646e4e6f6309bb2788435a708e69bea98f2f
+checksum=1998de1ab32616cbf2ff86efc3f1f26e76805ec5dc51e24c041c79edd8262785
 
 hostmakedepends="pkg-config perl yasm"
 makedepends="zlib-devel bzip2-devel freetype-devel alsa-lib-devel libXfixes-devel
@@ -21,11 +21,10 @@ makedepends="zlib-devel bzip2-devel freetype-devel alsa-lib-devel libXfixes-deve
  $(vopt_if vpx libvpx-devel)"
 
 build_options="x265 v4l2 vaapi vdpau vpx faac fdk_aac"
-build_options_default="v4l2"
+build_options_default="x265 v4l2 vpx"
 
 case "$XBPS_TARGET_MACHINE" in
-	i686*|x86_64*) build_options_default+=" x265 vaapi vdpau vpx";;
-	arm*|aarch64*) build_options_default+=" vpx"
+	i686*|x86_64*) build_options_default+=" vaapi vdpau";;
 esac
 
 do_configure() {

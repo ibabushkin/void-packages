@@ -1,6 +1,6 @@
 # Template file for 'opera'
 pkgname=opera
-version=45.0.2552.812
+version=45.0.2552.898
 revision=1
 only_for_archs="i686 x86_64"
 hostmakedepends="freetype-devel"
@@ -14,10 +14,10 @@ nopie=yes
 
 if [ "${XBPS_TARGET_MACHINE}" = "x86_64" ];then
 	_debarch=amd64
-	checksum=39ba2340cfc5752db90ed1118681cdfc07657df061eaace49ac0a1b91492c175
+	checksum=2a06172140d22e8740807762f5320007eb6797ed49e8ec6f366ac8a0817caa66
 else
 	_debarch=i386
-	checksum=82566f9fd4e76c0adf765c4d6ba194ae670298ab77ca7bcf6f0aed21393f1062
+	checksum=0fd8497f914efc47eb1ef1c7ce052487e3ca0c4c5474f01ad7e721f6ea08fea8
 fi
 
 distfiles="http://get.geo.opera.com/pub/opera/desktop/${version}/linux/opera-stable_${version}_${_debarch}.deb"
