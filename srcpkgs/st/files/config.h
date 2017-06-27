@@ -32,7 +32,7 @@ static float chscale = 1.0;
  *
  * More advanced example: " `'\"()[]{}"
  */
-static char worddelimiters[] = " ";
+static char worddelimiters[] = " `'\"()[]{}";
 
 /* selection timeouts (in milliseconds) */
 static unsigned int doubleclicktimeout = 300;
@@ -42,7 +42,7 @@ static unsigned int tripleclicktimeout = 600;
 static int allowaltscreen = 1;
 
 /* frames per second st should at maximum draw to the screen */
-static unsigned int xfps = 120;
+static unsigned int xfps = 60;
 static unsigned int actionfps = 30;
 
 /*
@@ -84,41 +84,43 @@ static unsigned int tabspaces = 8;
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
-	/* 8 normal colors */
-	"black",
-	"red3",
-	"green3",
-	"yellow3",
-	"blue2",
-	"magenta3",
-	"cyan3",
-	"gray90",
 
-	/* 8 bright colors */
-	"gray50",
-	"red",
-	"green",
-	"yellow",
-	"#5c5cff",
-	"magenta",
-	"cyan",
-	"white",
+  /* 8 normal colors */
+  [0] = "#20201d", /* black   */
+  [1] = "#d73737", /* red     */
+  [2] = "#60ac39", /* green   */
+  [3] = "#cfb017", /* yellow  */
+  [4] = "#6684e1", /* blue    */
+  [5] = "#b854d4", /* magenta */
+  [6] = "#1fad83", /* cyan    */
+  [7] = "#a6a28c", /* white   */
 
-	[255] = 0,
+  /* 8 bright colors */
+  [8]  = "#6e6b5e", /* black   */
+  [9]  = "#d73737", /* red     */
+  [10] = "#60ac39", /* green   */
+  [11] = "#cfb017", /* yellow  */
+  [12] = "#6684e1", /* blue    */
+  [13] = "#b854d4", /* magenta */
+  [14] = "#1fad83", /* cyan    */
+  [15] = "#fefbec", /* white   */
 
-	/* more colors can be added after 255 to use with DefaultXX */
-	"#cccccc",
-	"#555555",
+  /* special colors */
+  [255] = "#f1efe2", /* background */
+  [256] = "#fcfcfc", /* background */
+  [257] = "#6e6b5e", /* foreground */
 };
 
 /*
  * Default colors (colorname index)
- * foreground, background, cursor, reverse cursor
+ * foreground, background, cursor
  */
-static unsigned int defaultfg = 7;
-static unsigned int defaultbg = 0;
-static unsigned int defaultcs = 256;
-static unsigned int defaultrcs = 257;
+static unsigned int defaultfg = 0;
+static unsigned int defaultitalic = 0;
+static unsigned int defaultunderline = 0;
+static unsigned int defaultbg = 256;
+static unsigned int defaultcs = 257;
+static unsigned int defaultrcs = 256;
 
 /*
  * Default shape of cursor
@@ -130,6 +132,13 @@ static unsigned int defaultrcs = 257;
 static unsigned int cursorshape = 2;
 
 /*
+ * Default columns and rows numbers
+ */
+
+static unsigned int cols = 80;
+static unsigned int rows = 24;
+
+/*
  * Default colour and shape of the mouse cursor
  */
 static unsigned int mouseshape = XC_xterm;
@@ -137,12 +146,10 @@ static unsigned int mousefg = 7;
 static unsigned int mousebg = 0;
 
 /*
- * Colors used, when the specific fg == defaultfg. So in reverse mode this
- * will reverse too. Another logic would only make the simple feature too
- * complex.
+ * Color used to display font attributes when fontconfig selected a font which
+ * doesn't match the ones requested.
  */
-static unsigned int defaultitalic = 11;
-static unsigned int defaultunderline = 7;
+static unsigned int defaultattr = 11;
 
 /*
  * Internal mouse shortcuts.
@@ -280,23 +287,39 @@ static Key key[] = {
 	{ XK_KP_8,          XK_ANY_MOD,     "\033Ox",       +2,    0,    0},
 	{ XK_KP_9,          XK_ANY_MOD,     "\033Oy",       +2,    0,    0},
 	{ XK_Up,            ShiftMask,      "\033[1;2A",     0,    0,    0},
-	{ XK_Up,            ControlMask,    "\033[1;5A",     0,    0,    0},
 	{ XK_Up,            Mod1Mask,       "\033[1;3A",     0,    0,    0},
+	{ XK_Up,         ShiftMask|Mod1Mask,"\033[1;4A",     0,    0,    0},
+	{ XK_Up,            ControlMask,    "\033[1;5A",     0,    0,    0},
+	{ XK_Up,      ShiftMask|ControlMask,"\033[1;6A",     0,    0,    0},
+	{ XK_Up,       ControlMask|Mod1Mask,"\033[1;7A",     0,    0,    0},
+	{ XK_Up,ShiftMask|ControlMask|Mod1Mask,"\033[1;8A",  0,    0,    0},
 	{ XK_Up,            XK_ANY_MOD,     "\033[A",        0,   -1,    0},
 	{ XK_Up,            XK_ANY_MOD,     "\033OA",        0,   +1,    0},
 	{ XK_Down,          ShiftMask,      "\033[1;2B",     0,    0,    0},
-	{ XK_Down,          ControlMask,    "\033[1;5B",     0,    0,    0},
 	{ XK_Down,          Mod1Mask,       "\033[1;3B",     0,    0,    0},
+	{ XK_Down,       ShiftMask|Mod1Mask,"\033[1;4B",     0,    0,    0},
+	{ XK_Down,          ControlMask,    "\033[1;5B",     0,    0,    0},
+	{ XK_Down,    ShiftMask|ControlMask,"\033[1;6B",     0,    0,    0},
+	{ XK_Down,     ControlMask|Mod1Mask,"\033[1;7B",     0,    0,    0},
+	{ XK_Down,ShiftMask|ControlMask|Mod1Mask,"\033[1;8B",0,    0,    0},
 	{ XK_Down,          XK_ANY_MOD,     "\033[B",        0,   -1,    0},
 	{ XK_Down,          XK_ANY_MOD,     "\033OB",        0,   +1,    0},
 	{ XK_Left,          ShiftMask,      "\033[1;2D",     0,    0,    0},
-	{ XK_Left,          ControlMask,    "\033[1;5D",     0,    0,    0},
 	{ XK_Left,          Mod1Mask,       "\033[1;3D",     0,    0,    0},
+	{ XK_Left,       ShiftMask|Mod1Mask,"\033[1;4D",     0,    0,    0},
+	{ XK_Left,          ControlMask,    "\033[1;5D",     0,    0,    0},
+	{ XK_Left,    ShiftMask|ControlMask,"\033[1;6D",     0,    0,    0},
+	{ XK_Left,     ControlMask|Mod1Mask,"\033[1;7D",     0,    0,    0},
+	{ XK_Left,ShiftMask|ControlMask|Mod1Mask,"\033[1;8D",0,    0,    0},
 	{ XK_Left,          XK_ANY_MOD,     "\033[D",        0,   -1,    0},
 	{ XK_Left,          XK_ANY_MOD,     "\033OD",        0,   +1,    0},
 	{ XK_Right,         ShiftMask,      "\033[1;2C",     0,    0,    0},
-	{ XK_Right,         ControlMask,    "\033[1;5C",     0,    0,    0},
 	{ XK_Right,         Mod1Mask,       "\033[1;3C",     0,    0,    0},
+	{ XK_Right,      ShiftMask|Mod1Mask,"\033[1;4C",     0,    0,    0},
+	{ XK_Right,         ControlMask,    "\033[1;5C",     0,    0,    0},
+	{ XK_Right,   ShiftMask|ControlMask,"\033[1;6C",     0,    0,    0},
+	{ XK_Right,    ControlMask|Mod1Mask,"\033[1;7C",     0,    0,    0},
+	{ XK_Right,ShiftMask|ControlMask|Mod1Mask,"\033[1;8C",0,   0,    0},
 	{ XK_Right,         XK_ANY_MOD,     "\033[C",        0,   -1,    0},
 	{ XK_Right,         XK_ANY_MOD,     "\033OC",        0,   +1,    0},
 	{ XK_ISO_Left_Tab,  ShiftMask,      "\033[Z",        0,    0,    0},
@@ -440,3 +463,4 @@ static char ascii_printable[] =
 	" !\"#$%&'()*+,-./0123456789:;<=>?"
 	"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_"
 	"`abcdefghijklmnopqrstuvwxyz{|}~";
+
